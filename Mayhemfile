@@ -1,0 +1,6 @@
+project: json
+target: fuzzme
+duration: 90
+
+cmds:
+  - cmd: /fuzzme
