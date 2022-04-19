@@ -91,3 +91,23 @@ if(TAOCPP_JSON_INSTALL)
     NAMESPACE taocpp::
   )
 endif()
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  add_custom_target(mayhem-fuzz)
+  file(GLOB FUZZ_SOURCES .code-intelligence/fuzz_targets/*.cpp)
+  add_compile_options("-fsanitize=fuzzer")
+  add_definitions("-DFUZZ=LLVMFuzzerTestOneInput")
+  foreach(src ${FUZZ_SOURCES})
+    get_filename_component(bin ${src} NAME_WE)
+    set(bin ${bin}_fuzz)
+    add_executable(${bin} ${src})
+    add_dependencies(mayhem-fuzz ${bin})
+    target_link_libraries(${bin} PRIVATE taocpp::json)
+    set_target_properties(${bin} PROPERTIES
+      CXX_STANDARD 11
+      CXX_STANDARD_REQUIRED ON
+      CXX_EXTENSIONS OFF
+    )
+    target_link_options(${bin} PRIVATE "-fsanitize=fuzzer")
+  endforeach(src ${FUZZ_SOURCES})
+endif()

@@ -3,4 +3,4 @@ target: json-validation
 duration: 120
 
 cmds:
-  - cmd: /json_validation
+  - cmd: /json_validation_fuzz
