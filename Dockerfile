@@ -10,11 +10,11 @@ ADD . /taocpp-json-mayhem
 WORKDIR /taocpp-json-mayhem
 
 ## TODO: ADD YOUR BUILD INSTRUCTIONS HERE.
-RUN git submodule update --init --recursive && ./build_fuzz_targets.sh
+RUN git submodule update --init --recursive && mkdir build && cd build && CC=clang CXX=clang++ cmake .. && make mayhem-fuzz -j4
 
 # Package Stage
 FROM ubuntu:20.04
 
 ## TODO: Change <Path in Builder Stage>
-COPY --from=builder /taocpp-json-mayhem/fuzz_targets/* /
+COPY --from=builder /taocpp-json-mayhem/build/*_fuzz /
 
