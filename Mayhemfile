@@ -1,6 +1,6 @@
-project: json
-target: fuzzme
-duration: 90
+project: taocpp-json
+target: json-validation
+duration: 120
 
 cmds:
-  - cmd: /fuzzme
+  - cmd: /json_validation
