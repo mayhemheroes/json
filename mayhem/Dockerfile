@@ -15,9 +15,10 @@
 ################################################################################
 
 FROM gcr.io/oss-fuzz-base/base-builder
-RUN apt-get update && apt-get install -y binutils make
+RUN apt-get update && apt-get install -y binutils make git
 
-COPY . json
+COPY . $SRC/json
+RUN git clone --depth=1 --branch 3.x https://github.com/taocpp/PEGTL.git $SRC/json/external/PEGTL
 COPY mayhem/build.sh mayhem/*.options mayhem/parse_afl_fuzzer.dict $SRC/
 
 ENV FUZZING_LANGUAGE=c++ SANITIZER=address

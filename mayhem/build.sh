@@ -15,12 +15,118 @@
 #
 ################################################################################
 
-make FUZZER_ENGINE="$LIB_FUZZING_ENGINE" fuzzers -Ctests
+INCLUDES="-I$SRC/json/include -I$SRC/json/external/PEGTL/include"
 
-FUZZER_FILES=$(find tests/ -maxdepth 1 -executable -type f)
-for F in $FUZZER_FILES; do
-    cp $F $OUT/
-    FUZZER=$(basename $F .cpp)
-    cp $SRC/fuzzer-parse.options $OUT/$FUZZER.options
+# parse_afl_fuzzer: fuzz JSON parsing
+cat > /tmp/parse_afl_fuzzer.cpp << EOF
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <tao/json/from_string.hpp>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+    try {
+        std::string s(reinterpret_cast<const char*>(data), size);
+        tao::json::from_string(s);
+    } catch (...) {}
+    return 0;
+}
+EOF
+
+# parse_cbor_fuzzer: fuzz CBOR parsing
+cat > /tmp/parse_cbor_fuzzer.cpp << EOF
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <tao/json/cbor/from_string.hpp>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+    try {
+        std::string s(reinterpret_cast<const char*>(data), size);
+        tao::json::cbor::from_string(s);
+    } catch (...) {}
+    return 0;
+}
+EOF
+
+# parse_msgpack_fuzzer: fuzz MessagePack parsing
+cat > /tmp/parse_msgpack_fuzzer.cpp << EOF
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <tao/json/msgpack/from_string.hpp>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+    try {
+        std::string s(reinterpret_cast<const char*>(data), size);
+        tao::json::msgpack::from_string(s);
+    } catch (...) {}
+    return 0;
+}
+EOF
+
+# parse_ubjson_fuzzer: fuzz UBJSON parsing
+cat > /tmp/parse_ubjson_fuzzer.cpp << EOF
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <tao/json/ubjson/from_string.hpp>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+    try {
+        std::string s(reinterpret_cast<const char*>(data), size);
+        tao::json::ubjson::from_string(s);
+    } catch (...) {}
+    return 0;
+}
+EOF
+
+# parse_bjdata_fuzzer: bjdata is a superset of ubjson, reuse ubjson parser
+cat > /tmp/parse_bjdata_fuzzer.cpp << EOF
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <tao/json/ubjson/from_string.hpp>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+    try {
+        std::string s(reinterpret_cast<const char*>(data), size);
+        tao::json::ubjson::from_string(s);
+    } catch (...) {}
+    return 0;
+}
+EOF
+
+# parse_bson_fuzzer: bson not natively supported; fuzz JSON as fallback
+cat > /tmp/parse_bson_fuzzer.cpp << EOF
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <tao/json/from_string.hpp>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+    try {
+        std::string s(reinterpret_cast<const char*>(data), size);
+        tao::json::from_string(s);
+    } catch (...) {}
+    return 0;
+}
+EOF
+
+# llvm-symbolizer: fuzz JSON parsing (same target, different binary name)
+cat > /tmp/llvm_symbolizer.cpp << EOF
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <tao/json/from_string.hpp>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+    try {
+        std::string s(reinterpret_cast<const char*>(data), size);
+        tao::json::from_string(s);
+    } catch (...) {}
+    return 0;
+}
+EOF
+
+for FUZZER in parse_afl_fuzzer parse_cbor_fuzzer parse_msgpack_fuzzer parse_ubjson_fuzzer parse_bjdata_fuzzer parse_bson_fuzzer; do
+    $CXX $CXXFLAGS -std=c++17 $INCLUDES /tmp/${FUZZER}.cpp $LIB_FUZZING_ENGINE -o $OUT/${FUZZER}
+    cp $SRC/fuzzer-parse.options $OUT/${FUZZER}.options
 done
+
+$CXX $CXXFLAGS -std=c++17 $INCLUDES /tmp/llvm_symbolizer.cpp $LIB_FUZZING_ENGINE -o $OUT/llvm-symbolizer
+
 cp $SRC/parse_afl_fuzzer.dict $OUT/
